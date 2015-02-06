@@ -1,7 +1,8 @@
 package com.example.rossi.meteo;
 
+import android.app.Activity;
+import android.location.Location;
 import android.os.AsyncTask;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -15,24 +16,49 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationServices;
 
-public class MainActivity extends ActionBarActivity {
+
+public class MainActivity extends Activity implements
+        ConnectionCallbacks, OnConnectionFailedListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+
+    /**
+     * Provides the entry point to Google Play services.
+     */
+    protected GoogleApiClient mGoogleApiClient;
+
+    /**
+     * Represents a geographical location.
+     */
+    protected Location mLastLocation;
+
+    protected TextView mLatitudeText;
+    protected TextView mLongitudeText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+       // buildGoogleApiClient();
     }
 
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+    /**
+     * Builds a GoogleApiClient. Uses the addApi() method to request the LocationServices API.
+     */
+   /* protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+    }*/
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -101,4 +127,29 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
+    @Override
+    public void onConnected(Bundle bundle) {
+        // Provides a simple way of getting a device's location and is well suited for
+        // applications that do not require a fine-grained location and that do not need location
+        // updates. Gets the best and most recent location currently available, which may be null
+        // in rare cases when a location is not available.
+      /*  mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLastLocation != null) {
+            mLatitudeText.setText(String.valueOf(mLastLocation.getLatitude()));
+            mLongitudeText.setText(String.valueOf(mLastLocation.getLongitude()));
+        } else {
+        */
+           // Toast.makeText(this, R.string.no_location_detected, Toast.LENGTH_LONG).show();
+      //  }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+     //   mGoogleApiClient.connect();
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
+    }
 }

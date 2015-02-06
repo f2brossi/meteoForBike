@@ -1,6 +1,10 @@
 package com.example.rossi.meteo;
 
 
+import android.content.Context;
+import android.location.Location;
+import android.location.LocationManager;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -12,6 +16,7 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import org.apache.http.impl.client.DefaultRedirectHandler;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.json.JSONArray;
@@ -23,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +50,7 @@ public class MeteoFrance {
         CookieStore cookieStore = new BasicCookieStore();
         mLocalContext = new BasicHttpContext();
         mLocalContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
-        map.put("94140","940020");
+        map.put("94140", "940020");
         map.put("93300","930010");
         map.put("75020","751200");
         map.put("75019","751190");
@@ -72,7 +78,6 @@ public class MeteoFrance {
         map.put("92400","920260");
         map.put("95110","955820");
         map.put("94130","940520");
-
     }
 
     /**
@@ -85,6 +90,7 @@ public class MeteoFrance {
         return map.get(postalCode);
     }
 
+
     /**
      * @param postalCode
      *            a postal code for a city in France
@@ -95,10 +101,45 @@ public class MeteoFrance {
      */
     public List<Forecast> getNearForecast(String postalCode, String postalCodeEnd) throws IOException, JSONException {
         List<Forecast> result = new ArrayList<Forecast>();
-        result = getForecast(postalCode);
-        result.addAll(getForecast(postalCodeEnd));
+
+        String postalCodeRetrieveed = retrieveFromLocation();
+        result = getForecast(postalCodeRetrieveed);
+        if ( !postalCodeEnd.isEmpty())
+            result.addAll(getForecast(postalCodeEnd));
         return result;
     }
+
+    private String retrieveFromLocation() throws IOException, JSONException {
+        String longitude= "2.422317";
+        String latitude = "48.80093";
+
+        // Execute our http get request for the forecast for this location.
+       //String url = String.format("http://nominatim.openstreetmap.org/reverse?format=json&lat=%s&lon=%s&zoom=18&addressdetails=1",latitude,longitude);
+
+        String url = "http://nominatim.openstreetmap.org/reverse?format=json&lat=48.80093&lon=2.422317&zoom=18&addressdetails=1";
+
+        URI uri = URI.create(url);
+        HttpGet httpGet = new HttpGet(uri.toString());
+        HttpResponse response = mHttpClient.execute(httpGet, mLocalContext);
+        HttpEntity entity = response.getEntity();
+        InputStream content = entity.getContent();
+
+        BufferedReader r = new BufferedReader(new InputStreamReader(content));
+        StringBuilder total = new StringBuilder();
+        String line;
+        while ((line = r.readLine()) != null) {
+            total.append(line);
+        }
+
+        String totalStr= total.toString();
+        JSONObject jObject = new JSONObject(totalStr);
+
+        JSONObject location = jObject.getJSONObject("address");
+        String codepostal = location.getString("postcode");
+
+        return codepostal;
+    }
+
 
     private List<Forecast> getForecast(String postalCode) throws IOException, JSONException {
         List<Forecast> result = new ArrayList<Forecast>();
@@ -149,8 +190,27 @@ public class MeteoFrance {
 
         @Override
         protected RedirectHandler createRedirectHandler() {
-            return null;
+            return mRedirectHandler;
         }
-
     };
+
+    private RedirectHandler mRedirectHandler = new DefaultRedirectHandler() {
+
+        /*
+         * (non-Javadoc)
+         *
+         * @see
+         * org.apache.http.impl.client.DefaultRedirectHandler#isRedirectRequested
+         * (org.apache.http.HttpResponse, org.apache.http.protocol.HttpContext)
+         * We want to stop redirection if the redirection is to a URL containing
+         * the city id. In this case, we want to extract the city id from the
+         * location URL.
+         */
+        @Override
+        public boolean isRedirectRequested(HttpResponse response,
+                                           HttpContext context) {
+            return false;
+        }
+    };
+
 }
